@@ -39,7 +39,7 @@ public class GridManagement {
     public void printGrid(char[][] grid) {
         for (char[] row : grid) {
             for (char cell : row) {
-                System.out.print(cell);
+                System.out.print(cell + " ");
             }
             System.out.println();
         }

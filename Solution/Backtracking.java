@@ -1,7 +1,9 @@
 package Solution;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 class WordSpace {
     private int startRow, startCol, endRow, endCol;
@@ -43,20 +45,26 @@ class WordSpace {
 
 public class Backtracking {
     private char[][] grid;
+    private GridManagement gridManagement;
+    private WordManagement wordManagement;
     private List<String> words;
     private List<WordSpace> wordSpaces;
     
-    public Backtracking(char[][] grid, List<String> words) {
+    public Backtracking(char[][] grid, List<String> words, WordManagement wordManagement, GridManagement gridManagement) {
         this.grid = grid;
         this.words = words;
+        this.wordManagement = wordManagement;
+        this.gridManagement = gridManagement;
         this.wordSpaces = new ArrayList<>();
     }
 
+    public void solve() {
+        solve(0);
+    }
 
     public List<WordSpace> mapWordSpaces() {
         horizontalMap(wordSpaces);
         verticalMap(wordSpaces);
-        //printWordSpaces(wordSpaces);
 
         return wordSpaces;
     }
@@ -97,19 +105,27 @@ public class Backtracking {
         }
     }
 
-    public void printWordSpaces(List<WordSpace> wordSpaces) {
-        for (WordSpace wordSpace : wordSpaces) {
-            System.out.println("Start Row: " + wordSpace.getStartRow());
-            System.out.println("Start Col: " + wordSpace.getStartCol());
-            System.out.println("End Row: " + wordSpace.getEndRow());
-            System.out.println("End Col: " + wordSpace.getEndCol());
-            if (wordSpace.isHorizontal()) {
-                System.out.println("Orientation: Horizontal");
-            } else {
-                System.out.println("Orientation: Vertical");
+    public void insert(char[][] grid, String word, WordSpace wordSpace) {
+        if (wordSpace.isHorizontal()) {
+            for (int j = wordSpace.getStartCol(); j <= wordSpace.getEndCol(); j++) {
+                grid[wordSpace.getStartRow()][j] = word.charAt(j - wordSpace.getStartCol());
             }
-            System.out.println("Size: " + wordSpace.getSize());
-            System.out.println();
+        } else {
+            for (int i = wordSpace.getStartRow(); i <= wordSpace.getEndRow(); i++) {
+                grid[i][wordSpace.getStartCol()] = word.charAt(i - wordSpace.getStartRow());
+            }
+        }
+    }
+
+    public void remove(char[][] grid, String word, WordSpace wordSpace) {
+        if (wordSpace.isHorizontal()) {
+            for (int j = wordSpace.getStartCol(); j <= wordSpace.getEndCol(); j++) {
+                grid[wordSpace.getStartRow()][j] = '?';
+            }
+        } else {
+            for (int i = wordSpace.getStartRow(); i <= wordSpace.getEndRow(); i++) {
+                grid[i][wordSpace.getStartCol()] = '?';
+            }
         }
     }
 
@@ -131,4 +147,76 @@ public class Backtracking {
         return true;
     }
 
+    public int countIntersections(char[][] grid, String word, WordSpace wordSpace) {
+        int count = 0;
+    
+        if (wordSpace.isHorizontal()) {
+            int row = wordSpace.getStartRow();
+            for (int j = wordSpace.getStartCol(); j <= wordSpace.getEndCol(); j++) {
+                char gridChar = grid[row][j];
+                char wordChar = word.charAt(j - wordSpace.getStartCol());
+    
+                if (gridChar != '?' && gridChar != wordChar) {
+                    return -1; 
+                }
+                if (gridChar == wordChar) {
+                    count++; 
+                }
+            }
+        } else {
+            int col = wordSpace.getStartCol();
+            for (int i = wordSpace.getStartRow(); i <= wordSpace.getEndRow(); i++) {
+                char gridChar = grid[i][col];
+                char wordChar = word.charAt(i - wordSpace.getStartRow());
+    
+                if (gridChar != '?' && gridChar != wordChar) {
+                    return -1; 
+                }
+                if (gridChar == wordChar) {
+                    count++; 
+                }
+            }
+        }
+    
+        return count;
+    }
+
+    public List<String> BCU(char[][] grid, List<String> words, WordSpace wordSpace, int size) {
+
+        List<String> validWords = new ArrayList<>();
+        List<String> wordsOfLength = wordManagement.getWordsOfLength(size);
+        Map<String, Integer> wordIntersections = new HashMap<>();
+        
+        for (String word : wordsOfLength) {
+            int intersections = countIntersections(grid, word, wordSpace);
+            if (intersections >= 0) {
+                wordIntersections.put(word, intersections);
+                validWords.add(word);
+            }
+        }
+    
+        validWords.sort((a, b) -> Integer.compare(wordIntersections.get(b), wordIntersections.get(a)));
+        return validWords;
+    }
+
+    public boolean solve(int index) {
+        if (index == wordSpaces.size()) {
+            gridManagement.printGrid(grid);
+            return true;
+        }
+        WordSpace wordSpace = wordSpaces.get(index);
+        List<String> validWords = BCU(grid, words, wordSpace, wordSpace.getSize());
+        for (String word : validWords) {
+            if (checkIntersections(grid, word, wordSpace)) {
+                insert(grid, word, wordSpace);
+                if (solve(index + 1)) {
+                    return true;
+                }
+                remove(grid, word, wordSpace);
+            }
+        }
+        System.out.println("No solution found");
+        gridManagement.printGrid(grid);
+        return false;
+    }
 }
