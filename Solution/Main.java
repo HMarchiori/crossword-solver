@@ -1,11 +1,23 @@
 package Solution;
 
+import java.util.List;
+
 class Main {
 
     public static void main(String[] args) {
+
         Timer timer = new Timer();
+        WordManagement wordManagement = new WordManagement();
+        GridManagement gridManagement = new GridManagement();
+
         timer.start();
-        System.out.println("Hello World");
+
+        String wordsFilePath = "Text Files/unsorted_words.txt";
+        String gridFilePath = "Test Cases/grid3.txt";
+
+        List<String> words = wordManagement.readFile(wordsFilePath, 100000);
+
+
         timer.stop();
         System.out.println("Elapsed time: " + timer.getElapsedTime() + "ms");
     }

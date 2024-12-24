@@ -45,14 +45,4 @@ public class GridManagement {
         }
     }
 
-    public char[][] copyGrid(char[][] original) {
-        char[][] copy = new char[original.length][original[0].length];
-        for (int i = 0; i < original.length; i++) {
-            System.arraycopy(original[i], 0, copy[i], 0, original[i].length);
-        }
-        return copy;
-    }
-
-    
-
 }
