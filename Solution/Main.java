@@ -13,9 +13,9 @@ class Main {
         timer.start();
 
         String wordsFilePath = "Text Files/unsorted_words.txt";
-        String gridFilePath = "Test Cases/grid3.txt";
+        String gridFilePath = "Test Cases/grid.txt";
 
-        List<String> words = wordManagement.readFile(wordsFilePath, 100000);
+        List<String> words = wordManagement.readFile(wordsFilePath, 1000000);
         char[][] grid = gridManagement.createGrid(gridFilePath);
         Backtracking backtracking = new Backtracking(grid, words, wordManagement, gridManagement);
         backtracking.mapWordSpaces();
