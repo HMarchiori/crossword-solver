@@ -5,87 +5,239 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class WordSpace {
-    private int StartX, StartY, EndX, EndY;
-    private boolean isHorizontal;
-
-    public WordSpace(int StartX, int StartY, int EndX, int EndY, boolean isHorizontal) {
-        this.StartX = StartX;
-        this.StartY = StartY;
-        this.EndX = EndX;
-        this.EndY = EndY;
-        this.isHorizontal = isHorizontal;
-    }
-
-    public int getSize() {
-        return isHorizontal ? EndY - StartY + 1 : EndX - StartX + 1;
-    }
-
-    public int getStartX() {
-        return StartX;
-    }
-
-    public int getStartY() {
-        return StartY;
-    }
-
-    public int getEndX() {
-        return EndX;
-    }
-
-    public int getEndY() {
-        return EndY;
-    }
-
-    public boolean isHorizontal() {
-        return isHorizontal;
-    }
-
-}
-
 public class Backtracking {
+    private Map<String, Map<WordSpace, Integer>> intersectionCache = new HashMap<>();
     private char[][] grid;
     private GridManagement gridManagement;
     private WordManagement wordManagement;
     private List<String> words;
-    private List<WordSpace> wordSpaces;
+    private List<WordSpace> wss;
     
     public Backtracking(char[][] grid, List<String> words, WordManagement wordManagement, GridManagement gridManagement) {
         this.grid = grid;
         this.words = words;
         this.wordManagement = wordManagement;
         this.gridManagement = gridManagement;
-        this.wordSpaces = new ArrayList<>();
+        this.wss = new ArrayList<>();
     }
 
-    public void solve() {
-        wordSpaces = mapWordSpaces();
-        solve(0);
-        gridManagement.printGrid(grid);
+    public void solveWithBacktracking() {
+        // Mapeia os espaços disponíveis para as palavras
+        wss = mapWordSpaces();
+    
+        // Ordena as palavras para priorizar aquelas com mais interseções
+        sortWordsByIntersections(grid);
+    
+        // Começa a resolução com backtracking
+        if (backtrack(grid, words)) {
+            System.out.println("Solução encontrada!");
+            gridManagement.printGrid(grid);
+        } else {
+            System.out.println("Não foi possível encontrar uma solução.");
+        }
     }
+
+    public boolean backtrack(char[][] grid, List<String> remainingWords) {
+    // Caso base: se não houverem mais palavras a serem inseridas, retornamos verdadeiro
+    if (remainingWords.isEmpty()) {
+        return true;  // Todas as palavras foram inseridas com sucesso
+    }
+
+    // Pegue a próxima palavra a ser inserida
+    String word = remainingWords.get(0);
+
+    // Tente colocar a palavra em diferentes espaços da grade
+    for (WordSpace ws : wss) {
+        // Verifique se podemos colocar a palavra nesse espaço
+        if (checkIntersections(grid, word, ws)) {
+            // Armazene o estado atual da grade antes da inserção
+            char[][] backupGrid = copyGrid(grid);
+
+            // Inserir a palavra no espaço
+            if (ws.isHorizontal()) {
+                insertHorizontally(grid, word, ws);
+            } else {
+                insertVertically(grid, word, ws);
+            }
+
+            // Recursivamente tente inserir as outras palavras
+            List<String> nextRemainingWords = new ArrayList<>(remainingWords);
+            nextRemainingWords.remove(0);  // Remover a palavra que foi inserida
+
+            if (backtrack(grid, nextRemainingWords)) {
+                return true;  // Se a tentativa foi bem-sucedida, retornamos true
+            }
+
+            // Se a tentativa falhar, restaure o estado da grade e continue tentando
+            grid = backupGrid;
+        }
+    }
+
+    // Se não for possível inserir a palavra, retornamos falso
+    return false;
+}
+
+// Função auxiliar para fazer uma cópia da grade
+public char[][] copyGrid(char[][] originalGrid) {
+    char[][] copy = new char[originalGrid.length][originalGrid[0].length];
+    for (int i = 0; i < originalGrid.length; i++) {
+        for (int j = 0; j < originalGrid[i].length; j++) {
+            copy[i][j] = originalGrid[i][j];
+        }
+    }
+    return copy;
+}
+
 
     public List<WordSpace> mapWordSpaces() {
-        horizontalMap(wordSpaces);
-        verticalMap(wordSpaces);
-       for (WordSpace wordSpace : wordSpaces) {
-            System.out.println("WordSpace: " + wordSpace.getStartX() + " " + wordSpace.getStartY() + " " + wordSpace.getEndX() + " " + wordSpace.getEndY() + " " + wordSpace.isHorizontal());
-            System.out.println("Size: " + wordSpace.getSize() + "\n");
-        
+        horizontalMap(wss);
+        verticalMap(wss);
+        for (WordSpace ws :wss) {
+            System.out.println(ws);
         }
-        return wordSpaces;
+        return wss;
     }
 
-    public void horizontalMap(List<WordSpace> wordSpaces) {
+    public boolean checkIntersections(char[][] grid, String word, WordSpace ws) {
+        if (ws.isHorizontal()) {
+            return checkIntersectionsHorizontally(grid, word, ws);
+        } else {
+            return checkIntersectionsVertically(grid, word, ws);
+        }
+    }
+
+
+    public int countIntersections(char[][] grid, String word, WordSpace ws) {
+        if (intersectionCache.containsKey(word) && intersectionCache.get(word).containsKey(ws)) {
+            return intersectionCache.get(word).get(ws); 
+        }
+        int count = 0;
+        if (ws.isHorizontal()) {
+            count = countIntersectionsHorizontally(grid, word, ws);
+        } else {
+            count = countIntersectionsVertically(grid, word, ws);
+        }
+        intersectionCache.putIfAbsent(word, new HashMap<>());
+        intersectionCache.get(word).put(ws, count);
+        return count;
+    }
+
+    public void greedyInsert(char[][] grid) {
+        sortWordsByIntersections(grid);
+        for (String w : words) {
+            WordSpace bestWs = null;
+            int maxIntersections = -1;
+
+            for (WordSpace ws: wss) {
+                int intersections = countIntersections(grid, w, ws);
+                if (intersections > maxIntersections) {
+                    maxIntersections = intersections;
+                    bestWs = ws;
+                }
+            }
+
+            if (bestWs != null) {
+                if (bestWs.isHorizontal()) {
+                    insertHorizontally(grid, w, bestWs);
+                    System.out.println("Inserted " + w + " horizontally at " + bestWs);
+                } else {
+                    insertVertically(grid, w, bestWs);
+                    System.out.println("Inserted " + w + " vertically at " + bestWs);
+                }
+            } else {
+                System.out.println("Could not insert " + w);
+            }
+        }
+    }
+
+    // Métodos auxiliares
+    public void sortWordsByIntersections(char[][] grid) {
+        Map<String, Integer> wordIntersections = new HashMap<>();
+
+        for (String word : words) {
+            int totalIntersections = 0;
+            for (WordSpace ws : wss) {
+                totalIntersections += countIntersections(grid, word, ws); // Calcula interseções para cada palavra e espaço
+            }
+            wordIntersections.put(word, totalIntersections); // Mapeia palavra -> número de interseções
+        }
+        words.sort((w1, w2) -> wordIntersections.get(w2) - wordIntersections.get(w1)); 
+    }
+
+    public void insertVertically(char[][] grid, String word, WordSpace ws) {
+        for (int i = ws.getStartX(); i <= ws.getEndX(); i++) {
+            grid[i][ws.getStartY()] = word.charAt(i - ws.getStartX());
+        }
+    }
+
+    public void insertHorizontally(char[][] grid, String word, WordSpace ws) {
+        for (int j = ws.getStartY(); j <= ws.getEndY(); j++) {
+            grid[ws.getStartX()][j] = word.charAt(j - ws.getStartY());
+        }
+    }
+
+    public void removeVertically(char[][] grid, String word, WordSpace ws) {
+        for (int i = ws.getStartX(); i <= ws.getEndX(); i++) {
+            grid[i][ws.getStartY()] = '?';
+        }
+    }
+
+    public void removeHorizontally(char[][] grid, String word, WordSpace ws) {
+        for (int j = ws.getStartY(); j <= ws.getEndY(); j++) {
+            grid[ws.getStartX()][j] = '?';
+        }
+    }
+
+    public boolean checkIntersectionsHorizontally(char[][] grid, String word, WordSpace ws) {
+        for (int j = ws.getStartY(); j <= ws.getEndY(); j++) {
+            if (grid[ws.getStartX()][j] != '?' && grid[ws.getStartX()][j] != word.charAt(j - ws.getStartY())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean checkIntersectionsVertically(char[][] grid, String word, WordSpace ws) {
+        for (int i = ws.getStartX(); i <= ws.getEndX(); i++) {
+            if (grid[i][ws.getStartY()] != '?' && grid[i][ws.getStartY()] != word.charAt(i - ws.getStartX())) {
+                return false;
+            }
+        }
+        return true;
+    }
+  
+    public int countIntersectionsHorizontally(char[][] grid, String word, WordSpace ws) {
+        int count = 0;
+        for (int j = ws.getStartY(); j <= ws.getEndY(); j++) {
+            if (grid[ws.getStartX()][j] != '?' && grid[ws.getStartX()][j] != word.charAt(j - ws.getStartY())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public int countIntersectionsVertically(char[][] grid, String word, WordSpace ws) {
+        int count = 0;
+        for (int i = ws.getStartX(); i <= ws.getEndX(); i++) {
+            if (grid[i][ws.getStartY()] != '?' && grid[i][ws.getStartY()] != word.charAt(i - ws.getStartX())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+
+    public void horizontalMap(List<WordSpace> wss) {
         for (int i = 0; i < grid.length; i++) {
             int j = 0;
             while (j < grid[i].length) {
                 if (grid[i][j] == '?') {
-                    int StartY = j;
+                    int startY = j;
                     while (j < grid[i].length && grid[i][j] == '?') {
                         j++;
                     }
-                    if (j - StartY > 1) {
-                        wordSpaces.add(new WordSpace(i, StartY, i, j - 1, true));
+                    if (j - startY > 1) {
+                        wss.add(new WordSpace(i, startY, i, j - 1, true));
                     }
                 }
                 j++; 
@@ -93,149 +245,22 @@ public class Backtracking {
         }
     }
 
-    public void verticalMap(List<WordSpace> wordSpaces) {
+    public void verticalMap(List<WordSpace> wss) {
         for (int j = 0; j < grid[0].length; j++) {
             int i = 0;
             while (i < grid.length) {
                 if (grid[i][j] == '?') {
-                    int StartX = i;
+                    int startX = i;
                     while (i < grid.length && grid[i][j] == '?') {
                         i++;
                     }
-                    if (i - StartX > 1) {
-                        wordSpaces.add(new WordSpace(StartX, j, i - 1, j, false));
+                    if (i - startX > 1) {
+                        wss.add(new WordSpace(startX, j, i - 1, j, false));
                     }
                 }
                 i++;
             }
         }
     }
-
-    public void insert(char[][] grid, String word, WordSpace wordSpace) {
-        if (!wordSpace.isHorizontal()) {
-            for (int i = wordSpace.getStartX(); i <= wordSpace.getEndX(); i++) {
-                grid[i][wordSpace.getStartY()] = word.charAt(i - wordSpace.getStartX());
-            }
-            System.out.println("Inserted " + word);
-            System.out.println("StartX:" + wordSpace.getStartX() + " StartY:" + wordSpace.getStartY() + " EndX:" + wordSpace.getEndX() + " EndY:" + wordSpace.getEndY());
-        } else {
-            for (int j = wordSpace.getStartY(); j <= wordSpace.getEndY(); j++) {
-                grid[wordSpace.getStartX()][j] = word.charAt(j - wordSpace.getStartY());
-            }
-        }
-    }
-
-    public void remove(char[][] grid, String word, WordSpace wordSpace) {
-        if (wordSpace.isHorizontal()) {
-            for (int j = wordSpace.getStartY(); j <= wordSpace.getEndY(); j++) {
-                grid[wordSpace.getStartX()][j] = '?';
-            }
-        } else {
-            for (int i = wordSpace.getStartX(); i <= wordSpace.getEndX(); i++) {
-                grid[i][wordSpace.getStartY()] = '?';
-            }
-        }
-    }
-
-    public boolean checkIntersections(char[][] grid, String word, WordSpace wordSpace) {
-        if (wordSpace.isHorizontal()) {
-            for (int j = wordSpace.getStartY(); j <= wordSpace.getEndY(); j++) {
-                // Verifica se o caractere na posição do grid é '?' (vazio) ou se é igual ao caractere da palavra
-                if (grid[wordSpace.getStartX()][j] != '?' && grid[wordSpace.getStartX()][j] != word.charAt(j - wordSpace.getStartY())) {
-                    return false; // Se a letra não coincide, retorna falso
-                }
-            }
-        } else {
-            for (int i = wordSpace.getStartX(); i <= wordSpace.getEndX(); i++) {
-                // Verifica se o caractere na posição do grid é '?' (vazio) ou se é igual ao caractere da palavra
-                if (grid[i][wordSpace.getStartY()] != '?' && grid[i][wordSpace.getStartY()] != word.charAt(i - wordSpace.getStartX())) {
-                    return false; // Se a letra não coincide, retorna falso
-                }
-            }
-        }
-        return true; // Se não houver conflitos, retorna verdadeiro
-    }
-
-    public int countIntersections(char[][] grid, String word, WordSpace wordSpace) {
-        int intersections = 0;
-    
-        if (wordSpace.isHorizontal()) {
-            for (int j = wordSpace.getStartY(); j <= wordSpace.getEndY(); j++) {
-                // Se o caractere no grid não for '?' e não corresponder ao caractere da palavra, retorna -1 (indica conflito)
-                if (grid[wordSpace.getStartX()][j] != '?' && grid[wordSpace.getStartX()][j] != word.charAt(j - wordSpace.getStartY())) {
-                    return -1;
-                }
-                // Conta a interseção se o caractere for igual ao da palavra
-                if (grid[wordSpace.getStartX()][j] == word.charAt(j - wordSpace.getStartY())) {
-                    intersections++;
-                }
-            }
-        } else {
-            for (int i = wordSpace.getStartX(); i <= wordSpace.getEndX(); i++) {
-                // Se o caractere no grid não for '?' e não corresponder ao caractere da palavra, retorna -1 (indica conflito)
-                if (grid[i][wordSpace.getStartY()] != '?' && grid[i][wordSpace.getStartY()] != word.charAt(i - wordSpace.getStartX())) {
-                    return -1;
-                }
-                // Conta a interseção se o caractere for igual ao da palavra
-                if (grid[i][wordSpace.getStartY()] == word.charAt(i - wordSpace.getStartX())) {
-                    intersections++;
-                }
-            }
-        }
-        return intersections;
-    }
-
-    public String BCU(char[][] grid, List<String> words, WordSpace wordSpace, int size) {
-        List<String> validWords = new ArrayList<>();
-        List<String> wordsOfLength = wordManagement.getWordsOfLength(size); // Certifique-se de que wordManagement está correto
-    
-        // Mapeia as palavras válidas com base nas interseções
-        Map<String, Integer> wordIntersections = new HashMap<>();
-        
-        for (String word : wordsOfLength) {
-            // Verifica as interseções para cada palavra
-            int intersections = countIntersections(grid, word, wordSpace);
-            if (intersections >= 0) { // Só palavras que não causam conflitos
-                wordIntersections.put(word, intersections);
-                validWords.add(word);
-            }
-        }
-        
-        // Se não houver palavras válidas, retorna null
-        if (validWords.isEmpty()) {
-            return null; // Nenhuma palavra válida disponível
-        }
-        
-        // Ordena as palavras por número de interseções (mais interseções primeiro)
-        validWords.sort((a, b) -> Integer.compare(wordIntersections.get(b), wordIntersections.get(a)));
-        
-        // Retorna a palavra com mais interseções
-        return validWords.get(0); // Retorna a melhor palavra possível
-    }
-
-    public boolean solve(int index) {
-        if (index == wordSpaces.size()) {
-            return true; // Todas as palavras foram posicionadas
-        }
-    
-        WordSpace currentSpace = wordSpaces.get(index);
-        int size = currentSpace.getSize();
-        String word = BCU(grid, words, currentSpace, size);
-    
-        if (word == null) {
-            return false; // Não há palavra válida para este espaço, faz backtracking
-        }
-    
-        if (checkIntersections(grid, word, currentSpace)) {
-            insert(grid, word, currentSpace);
-    
-            if (solve(index + 1)) {
-                return true;
-            }
-    
-            remove(grid, word, currentSpace); // Backtrack
-        }
-    
-        return false; // Nenhuma solução encontrada
-        }
-    }
+  
+}

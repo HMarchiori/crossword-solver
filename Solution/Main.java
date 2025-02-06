@@ -13,13 +13,13 @@ class Main {
         timer.start();
 
         String wordsFilePath = "Text Files/unsorted_words.txt";
-        String gridFilePath = "Test Cases/grid.txt";
+        String gridFilePath = "Test Cases/grid3.txt";
 
         List<String> words = wordManagement.readFile(wordsFilePath, 1000000);
         char[][] grid = gridManagement.createGrid(gridFilePath);
         Backtracking backtracking = new Backtracking(grid, words, wordManagement, gridManagement);
         backtracking.mapWordSpaces();
-        backtracking.solve();
+        backtracking.solveWithBacktracking();
 
 
         timer.stop();

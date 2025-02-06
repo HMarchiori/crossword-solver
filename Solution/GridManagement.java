@@ -37,12 +37,14 @@ public class GridManagement {
     }
 
     public void printGrid(char[][] grid) {
+        StringBuilder output = new StringBuilder();
         for (char[] row : grid) {
             for (char cell : row) {
-                System.out.print(cell + " ");
+                output.append(cell).append(" "); 
             }
-            System.out.println();
+            output.append("\n"); 
         }
+        System.out.print(output);
     }
 
 }

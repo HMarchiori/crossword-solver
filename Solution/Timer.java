@@ -1,29 +1,35 @@
 package Solution;
 
 public class Timer {
-    private long startTime;
-    private long endTime;
+    private long startTime = 0;
+    private long endTime = 0;
+    private boolean running = false;
 
-    public Timer() {
-        startTime = 0;
-        endTime = 0;
+    public void start() {
+        if (!running) {
+            startTime = System.currentTimeMillis();
+            running = true;
+        }
+    }
+
+    public void stop() {
+        if (running) {
+            endTime = System.currentTimeMillis();
+            running = false;
+        }
     }
 
     public void reset() {
         startTime = 0;
         endTime = 0;
-    }
-
-    public void start() {
-        startTime = System.currentTimeMillis();
-    }
-
-    public void stop() {
-        endTime = System.currentTimeMillis();
+        running = false;
     }
 
     public long getElapsedTime() {
-        return endTime - startTime;
+        return (running ? System.currentTimeMillis() : endTime) - startTime;
     }
 
+    public void printElapsedTime() {
+        System.out.println("Elapsed time: " + getElapsedTime() + "ms");
+    }
 }

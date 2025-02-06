@@ -3,14 +3,15 @@ package Solution;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class WordManagement {
     private List<String> words;
+    private Map<Integer, List<String>> wordsByLength;
 
     public WordManagement() {
         this.words = new ArrayList<>();
+        this.wordsByLength = new HashMap<>();
     }
 
     public List<String> readFile(String filePath, int limit) {
@@ -22,6 +23,7 @@ public class WordManagement {
                 }
                 if (line.matches("[a-zA-Z]+") && !line.matches("([a-zA-Z])\\1+")) {
                     words.add(line);
+                    wordsByLength.computeIfAbsent(line.length(), _ -> new ArrayList<>()).add(line);
                 }
             }
         } catch (IOException e) {
@@ -31,20 +33,6 @@ public class WordManagement {
     }
 
     public List<String> getWordsOfLength(int length) {
-        List<String> wordsOfLength = new ArrayList<>();
-        for (String word : words) {
-            if (word.length() == length) {
-                wordsOfLength.add(word);
-            }
-        }
-        return wordsOfLength;
+        return wordsByLength.getOrDefault(length, new ArrayList<>());
     }
-
-    public void printWords(List<String> words) {
-        for (String word : words) {
-            System.out.println(word);
-        }
-    }
-
-
 }
