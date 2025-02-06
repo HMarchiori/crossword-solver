@@ -21,74 +21,6 @@ public class Backtracking {
         this.wss = new ArrayList<>();
     }
 
-    public void solveWithBacktracking() {
-        // Mapeia os espaços disponíveis para as palavras
-        wss = mapWordSpaces();
-    
-        // Ordena as palavras para priorizar aquelas com mais interseções
-        sortWordsByIntersections(grid);
-    
-        // Começa a resolução com backtracking
-        if (backtrack(grid, words)) {
-            System.out.println("Solução encontrada!");
-            gridManagement.printGrid(grid);
-        } else {
-            System.out.println("Não foi possível encontrar uma solução.");
-        }
-    }
-
-    public boolean backtrack(char[][] grid, List<String> remainingWords) {
-    // Caso base: se não houverem mais palavras a serem inseridas, retornamos verdadeiro
-    if (remainingWords.isEmpty()) {
-        return true;  // Todas as palavras foram inseridas com sucesso
-    }
-
-    // Pegue a próxima palavra a ser inserida
-    String word = remainingWords.get(0);
-
-    // Tente colocar a palavra em diferentes espaços da grade
-    for (WordSpace ws : wss) {
-        // Verifique se podemos colocar a palavra nesse espaço
-        if (checkIntersections(grid, word, ws)) {
-            // Armazene o estado atual da grade antes da inserção
-            char[][] backupGrid = copyGrid(grid);
-
-            // Inserir a palavra no espaço
-            if (ws.isHorizontal()) {
-                insertHorizontally(grid, word, ws);
-            } else {
-                insertVertically(grid, word, ws);
-            }
-
-            // Recursivamente tente inserir as outras palavras
-            List<String> nextRemainingWords = new ArrayList<>(remainingWords);
-            nextRemainingWords.remove(0);  // Remover a palavra que foi inserida
-
-            if (backtrack(grid, nextRemainingWords)) {
-                return true;  // Se a tentativa foi bem-sucedida, retornamos true
-            }
-
-            // Se a tentativa falhar, restaure o estado da grade e continue tentando
-            grid = backupGrid;
-        }
-    }
-
-    // Se não for possível inserir a palavra, retornamos falso
-    return false;
-}
-
-// Função auxiliar para fazer uma cópia da grade
-public char[][] copyGrid(char[][] originalGrid) {
-    char[][] copy = new char[originalGrid.length][originalGrid[0].length];
-    for (int i = 0; i < originalGrid.length; i++) {
-        for (int j = 0; j < originalGrid[i].length; j++) {
-            copy[i][j] = originalGrid[i][j];
-        }
-    }
-    return copy;
-}
-
-
     public List<WordSpace> mapWordSpaces() {
         horizontalMap(wss);
         verticalMap(wss);
@@ -111,7 +43,7 @@ public char[][] copyGrid(char[][] originalGrid) {
         if (intersectionCache.containsKey(word) && intersectionCache.get(word).containsKey(ws)) {
             return intersectionCache.get(word).get(ws); 
         }
-        int count = 0;
+        int count;
         if (ws.isHorizontal()) {
             count = countIntersectionsHorizontally(grid, word, ws);
         } else {
@@ -120,6 +52,22 @@ public char[][] copyGrid(char[][] originalGrid) {
         intersectionCache.putIfAbsent(word, new HashMap<>());
         intersectionCache.get(word).put(ws, count);
         return count;
+    }
+
+    public void insert(char[][] grid, String word, WordSpace ws) {
+        if (ws.isHorizontal()) {
+            insertHorizontally(grid, word, ws);
+        } else {
+            insertVertically(grid, word, ws);
+        }
+    }
+
+    public void remove(char[][] grid, String word, WordSpace ws) {
+        if (ws.isHorizontal()) {
+            removeHorizontally(grid, word, ws);
+        } else {
+            removeVertically(grid, word, ws);
+        }
     }
 
     public void greedyInsert(char[][] grid) {
@@ -137,13 +85,7 @@ public char[][] copyGrid(char[][] originalGrid) {
             }
 
             if (bestWs != null) {
-                if (bestWs.isHorizontal()) {
-                    insertHorizontally(grid, w, bestWs);
-                    System.out.println("Inserted " + w + " horizontally at " + bestWs);
-                } else {
-                    insertVertically(grid, w, bestWs);
-                    System.out.println("Inserted " + w + " vertically at " + bestWs);
-                }
+                insert(grid, w, bestWs);
             } else {
                 System.out.println("Could not insert " + w);
             }
